@@ -533,13 +533,26 @@ export default function App() {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: 'clamp(1.5rem, 5vw, 2.2rem)',
+                        fontSize: 'clamp(2rem, 7vw, 2.8rem)',
                         cursor: 'pointer',
-                        position: 'relative'
+                        position: 'relative',
+                        userSelect: 'none'
                       }}
                     >
                       {esMovimientoPosible && <div style={{ position: 'absolute', width: '28%', height: '28%', backgroundColor: 'rgba(16, 185, 129, 0.8)', borderRadius: '50%', zIndex: 2 }} />}
-                      {square && <span style={{ color: coloresActuales[square.color], filter: square.color === 'w' ? 'drop-shadow(0px 2px 3px rgba(0,0,0,0.7))' : 'drop-shadow(0px 2px 2px rgba(255,255,255,0.3))', lineHeight: 1, zIndex: 1 }}>{PIEZAS_UNICODE[square.color][square.type]}</span>}
+                      {square && (
+                        <span style={{ 
+                          color: coloresActuales[square.color], 
+                          filter: square.color === 'w' ? 'drop-shadow(0px 2px 3px rgba(0,0,0,0.8))' : 'drop-shadow(0px 2px 2px rgba(255,255,255,0.4))', 
+                          lineHeight: 1, 
+                          zIndex: 1,
+                          display: 'inline-block',
+                          transform: square.color === 'b' ? 'scale(1.08)' : 'scale(1)',
+                          fontWeight: 'bold'
+                        }}>
+                          {PIEZAS_UNICODE[square.color][square.type]}
+                        </span>
+                      )}
                     </div>
                   );
                 })
