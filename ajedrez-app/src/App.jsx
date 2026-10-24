@@ -231,12 +231,13 @@ export default function App() {
     conn.on('data', (data) => {
       if (data.tipo === 'movimiento') {
         try {
-          const res = game.move(data.movimiento);
-          if (res) {
-            setUltimoMovimiento({ from: res.from, to: res.to });
-            if (res.captured) reproducirSonido('comer');
-            else reproducirSonido('mover');
-            setGame(new Chess(game.fen()));
+          const nuevaPartida = new Chess(data.fen);
+          setGame(nuevaPartida);
+          setUltimoMovimiento(data.ultimoMovimiento);
+          if (data.capturo) {
+            reproducirSonido('comer');
+          } else {
+            reproducirSonido('mover');
           }
         } catch (e) {}
       } else if (data.tipo === 'reiniciar') {
@@ -252,7 +253,7 @@ export default function App() {
 
   const conectarASala = () => {
     if (!codigoIngresado || !peerInstance.current) return;
-    const conn = peerInstance.current.connect(codigoIngresado);
+    const conn = peerInstance.current.connect(codigoIngresado.trim());
     conexionRef.current = conn;
 
     conn.on('open', () => {
@@ -316,7 +317,8 @@ export default function App() {
         const movimiento = game.move(jugada);
 
         if (movimiento) {
-          setUltimoMovimiento({ from: movimiento.from, to: movimiento.to });
+          const infoUltimoMov = { from: movimiento.from, to: movimiento.to };
+          setUltimoMovimiento(infoUltimoMov);
           if (movimiento.captured) {
             reproducirSonido('comer');
             setPiezasCapturadas(prev => ({
@@ -326,13 +328,17 @@ export default function App() {
           } else {
             reproducirSonido('mover');
           }
-          setGame(new Chess(game.fen()));
+          
+          const nuevoJuego = new Chess(game.fen());
+          setGame(nuevoJuego);
 
-          // Si estamos Online, enviar la jugada al rival
+          // Si estamos Online, enviar el estado exacto FEN al rival
           if (modoJuego === 'online' && conexionRef.current) {
             conexionRef.current.send({
               tipo: 'movimiento',
-              movimiento: jugada
+              fen: nuevoJuego.fen(),
+              ultimoMovimiento: infoUltimoMov,
+              capturo: !!movimiento.captured
             });
           }
         }
