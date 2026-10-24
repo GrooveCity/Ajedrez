@@ -110,11 +110,13 @@ export default function App() {
   const [movimientosPosibles, setMovimientosPosibles] = useState([]);
   const [ultimoMovimiento, setUltimoMovimiento] = useState(null);
   const [piezasCapturadas, setPiezasCapturadas] = useState({ w: [], b: [] });
+  const [casillaCapturaEfecto, setCasillaCapturaEfecto] = useState(null);
   
   const [modoJuego, setModoJuego] = useState('local'); // 'local' | 'cpu' | 'puzles' | 'online'
   const [estiloTablero, setEstiloTablero] = useState(() => localStorage.getItem('ajedrez_estilo') || 'madera');
   const [estiloPiezas, setEstiloPiezas] = useState(() => localStorage.getItem('ajedrez_piezas') || 'clasico');
   const [perspectivaNegra, setPerspectivaNegra] = useState(false);
+  const [esModo3D, setEsModo3D] = useState(false);
   const [termometro, setTermometro] = useState(50);
 
   const [enPausa, setEnPausa] = useState(false);
@@ -189,6 +191,8 @@ export default function App() {
             setUltimoMovimiento({ from: res.from, to: res.to });
             if (res.captured) {
               reproducirSonido('comer');
+              setCasillaCapturaEfecto(res.to);
+              setTimeout(() => setCasillaCapturaEfecto(null), 500);
               setPiezasCapturadas(prev => ({
                 ...prev,
                 [res.color]: [...prev[res.color], res.captured]
@@ -215,7 +219,6 @@ export default function App() {
       setMiPeerId(id);
     });
 
-    // Escuchar conexiones entrantes (si soy anfitrión)
     peer.on('connection', (conn) => {
       conexionRef.current = conn;
       setEstadoOnline('conectado');
@@ -236,6 +239,8 @@ export default function App() {
           setUltimoMovimiento(data.ultimoMovimiento);
           if (data.capturo) {
             reproducirSonido('comer');
+            setCasillaCapturaEfecto(data.ultimoMovimiento?.to);
+            setTimeout(() => setCasillaCapturaEfecto(null), 500);
           } else {
             reproducirSonido('mover');
           }
@@ -259,7 +264,7 @@ export default function App() {
     conn.on('open', () => {
       setEstadoOnline('conectado');
       setColorOnline('b');
-      setPerspectivaNegra(true); // El invitado juega desde abajo con negras
+      setPerspectivaNegra(true);
       configurarEventosConexion(conn);
     });
   };
@@ -269,7 +274,7 @@ export default function App() {
     if (modoJuego === 'cpu' && game.turn() === 'b') return;
     if (modoJuego === 'online') {
       if (estadoOnline !== 'conectado') return;
-      if (game.turn() !== colorOnline) return; // Bloquear si no es tu turno
+      if (game.turn() !== colorOnline) return;
     }
     if (finPorTiempo) return;
 
@@ -321,6 +326,8 @@ export default function App() {
           setUltimoMovimiento(infoUltimoMov);
           if (movimiento.captured) {
             reproducirSonido('comer');
+            setCasillaCapturaEfecto(movimiento.to);
+            setTimeout(() => setCasillaCapturaEfecto(null), 500);
             setPiezasCapturadas(prev => ({
               ...prev,
               [movimiento.color]: [...prev[movimiento.color], movimiento.captured]
@@ -332,7 +339,6 @@ export default function App() {
           const nuevoJuego = new Chess(game.fen());
           setGame(nuevoJuego);
 
-          // Si estamos Online, enviar el estado exacto FEN al rival
           if (modoJuego === 'online' && conexionRef.current) {
             conexionRef.current.send({
               tipo: 'movimiento',
@@ -420,7 +426,7 @@ export default function App() {
       
       {/* Título Principal */}
       <h1 style={{ fontSize: '1.5rem', margin: '0 0 12px 0', fontWeight: 'bold', color: '#f8fafc' }}>
-        ♔ Ajedrez Pro
+        ♔ Ajedrez Pro {esModo3D && '3D'}
       </h1>
 
       {/* Selector de Modo */}
@@ -431,7 +437,7 @@ export default function App() {
         <button onClick={() => cambiarModoJuego('online')} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: 'none', background: modoJuego === 'online' ? '#3b82f6' : '#1e293b', color: '#fff', fontWeight: 'bold', fontSize: '0.8rem', cursor: 'pointer' }}>🌐 Online</button>
       </div>
 
-      {/* Ajustes Estéticos */}
+      {/* Ajustes Estéticos & Botón 3D */}
       <div style={{ display: 'flex', gap: '6px', maxWidth: '440px', width: '100%', marginBottom: '10px' }}>
         <select value={estiloTablero} onChange={(e) => setEstiloTablero(e.target.value)} style={{ flex: 1, background: '#1e293b', color: '#fff', border: '1px solid #334155', padding: '6px', borderRadius: '6px', fontSize: '0.75rem' }}>
           <option value="madera">🪵 Madera</option>
@@ -444,6 +450,10 @@ export default function App() {
           <option value="neon">⚡ Neón</option>
           <option value="dorado">👑 Dorado</option>
         </select>
+
+        <button onClick={() => setEsModo3D(!esModo3D)} style={{ background: esModo3D ? '#10b981' : '#1e293b', color: '#fff', border: '1px solid #334155', padding: '6px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold', cursor: 'pointer' }}>
+          {esModo3D ? '🧊 3D On' : '📐 2D'}
+        </button>
 
         <button onClick={() => setEnPausa(!enPausa)} style={{ background: enPausa ? '#10b981' : '#f59e0b', color: '#000', border: 'none', padding: '6px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold', cursor: 'pointer' }}>{enPausa ? '▶️' : '⏸️'}</button>
         <button onClick={() => setPerspectivaNegra(!perspectivaNegra)} style={{ background: '#1e293b', color: '#fff', border: '1px solid #334155', padding: '6px 10px', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer' }}>🔄</button>
@@ -497,15 +507,15 @@ export default function App() {
         </div>
       </div>
 
-      {/* Tablero y Termómetro */}
-      <div style={{ display: 'flex', gap: '8px', maxWidth: '440px', width: '100%', alignItems: 'center' }}>
+      {/* Contenedor del Tablero con Efecto 3D Dinámico */}
+      <div style={{ display: 'flex', gap: '8px', maxWidth: '440px', width: '100%', alignItems: 'center', perspective: '900px' }}>
         <div style={{ width: '10px', height: '340px', backgroundColor: '#334155', borderRadius: '6px', overflow: 'hidden', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
           <div style={{ width: '100%', height: `${100 - termometro}%`, backgroundColor: '#0f172a', transition: 'height 0.3s ease' }} />
           <div style={{ width: '100%', height: `${termometro}%`, backgroundColor: '#f8fafc', transition: 'height 0.3s ease' }} />
         </div>
 
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ backgroundColor: temaActual.borde, padding: '6px', borderRadius: '10px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', width: '100%', boxSizing: 'border-box' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', transition: 'transform 0.5s ease', transform: esModo3D ? 'rotateX(22deg) rotateY(0deg) scale(1.05)' : 'rotateX(0deg) scale(1)', transformStyle: 'preserve-3d' }}>
+          <div style={{ backgroundColor: temaActual.borde, padding: '6px', borderRadius: '10px', boxShadow: esModo3D ? '0 25px 45px rgba(0,0,0,0.7), 0 0 20px rgba(59, 130, 246, 0.2)' : '0 10px 25px rgba(0,0,0,0.5)', width: '100%', boxSizing: 'border-box', transition: 'box-shadow 0.5s ease' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gridTemplateRows: 'repeat(8, 1fr)', width: '100%', aspectRatio: '1 / 1', borderRadius: '4px', overflow: 'hidden' }}>
               {board.map((row, rowIndex) =>
                 row.map((square, colIndex) => {
@@ -521,13 +531,14 @@ export default function App() {
                   const estaSeleccionada = casillaSeleccionada === coordenada;
                   const esMovimientoPosible = movimientosPosibles.includes(coordenada);
                   const esUltimoMovimiento = ultimoMovimiento && (ultimoMovimiento.from === coordenada || ultimoMovimiento.to === coordenada);
+                  const tieneEfectoCaptura = casillaCapturaEfecto === coordenada;
 
                   return (
                     <div
                       key={`${rowIndex}-${colIndex}`}
                       onClick={() => manejarClickCasilla(rowIndex, colIndex)}
                       style={{
-                        backgroundColor: estaSeleccionada ? '#f59e0b' : (esUltimoMovimiento ? 'rgba(250, 204, 21, 0.5)' : colorCasilla),
+                        backgroundColor: tieneEfectoCaptura ? '#ef4444' : (estaSeleccionada ? '#f59e0b' : (esUltimoMovimiento ? 'rgba(250, 204, 21, 0.5)' : colorCasilla)),
                         width: '100%',
                         height: '100%',
                         display: 'flex',
@@ -536,19 +547,22 @@ export default function App() {
                         fontSize: 'clamp(2rem, 7vw, 2.8rem)',
                         cursor: 'pointer',
                         position: 'relative',
-                        userSelect: 'none'
+                        userSelect: 'none',
+                        transition: 'background-color 0.2s ease, transform 0.2s ease'
                       }}
                     >
                       {esMovimientoPosible && <div style={{ position: 'absolute', width: '28%', height: '28%', backgroundColor: 'rgba(16, 185, 129, 0.8)', borderRadius: '50%', zIndex: 2 }} />}
                       {square && (
                         <span style={{ 
                           color: coloresActuales[square.color], 
-                          filter: square.color === 'w' ? 'drop-shadow(0px 2px 3px rgba(0,0,0,0.8))' : 'drop-shadow(0px 2px 2px rgba(255,255,255,0.4))', 
+                          filter: square.color === 'w' ? 'drop-shadow(0px 3px 4px rgba(0,0,0,0.8))' : 'drop-shadow(0px 3px 3px rgba(255,255,255,0.4))', 
                           lineHeight: 1, 
                           zIndex: 1,
                           display: 'inline-block',
-                          transform: square.color === 'b' ? 'scale(1.08)' : 'scale(1)',
-                          fontWeight: 'bold'
+                          transform: esModo3D 
+                            ? (square.color === 'b' ? 'scale(1.15) translateY(-6px) translateZ(15px)' : 'scale(1.05) translateY(-4px) translateZ(15px)')
+                            : (square.color === 'b' ? 'scale(1.08)' : 'scale(1)'),
+                          transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
                         }}>
                           {PIEZAS_UNICODE[square.color][square.type]}
                         </span>
