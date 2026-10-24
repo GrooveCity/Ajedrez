@@ -115,8 +115,8 @@ export default function App() {
   const [modoJuego, setModoJuego] = useState('local'); // 'local' | 'cpu' | 'puzles' | 'online'
   const [estiloTablero, setEstiloTablero] = useState(() => localStorage.getItem('ajedrez_estilo') || 'madera');
   const [estiloPiezas, setEstiloPiezas] = useState(() => localStorage.getItem('ajedrez_piezas') || 'clasico');
+  const [dimensionPiezas, setDimensionPiezas] = useState(() => localStorage.getItem('ajedrez_dimension') || '2d'); // '2d' | '3d'
   const [perspectivaNegra, setPerspectivaNegra] = useState(false);
-  const [esModo3D, setEsModo3D] = useState(false);
   const [termometro, setTermometro] = useState(50);
 
   const [enPausa, setEnPausa] = useState(false);
@@ -147,6 +147,10 @@ export default function App() {
     }
     setTermometro(evaluarMaterial(game));
   }, [game, modoJuego]);
+
+  useEffect(() => {
+    localStorage.setItem('ajedrez_dimension', dimensionPiezas);
+  }, [dimensionPiezas]);
 
   // Manejador del Reloj
   useEffect(() => {
@@ -410,6 +414,7 @@ export default function App() {
 
   const temaActual = temasTablero[estiloTablero];
   const coloresActuales = coloresPiezas[estiloPiezas];
+  const es3D = dimensionPiezas === '3d';
 
   return (
     <div style={{
@@ -426,7 +431,7 @@ export default function App() {
       
       {/* Título Principal */}
       <h1 style={{ fontSize: '1.5rem', margin: '0 0 12px 0', fontWeight: 'bold', color: '#f8fafc' }}>
-        ♔ Ajedrez Pro {esModo3D && '3D'}
+        ♔ Ajedrez Pro {es3D && '3D'}
       </h1>
 
       {/* Selector de Modo */}
@@ -437,7 +442,7 @@ export default function App() {
         <button onClick={() => cambiarModoJuego('online')} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: 'none', background: modoJuego === 'online' ? '#3b82f6' : '#1e293b', color: '#fff', fontWeight: 'bold', fontSize: '0.8rem', cursor: 'pointer' }}>🌐 Online</button>
       </div>
 
-      {/* Ajustes Estéticos & Botón 3D */}
+      {/* Ajustes Estéticos: Incluye Selector de Modo 2D/3D */}
       <div style={{ display: 'flex', gap: '6px', maxWidth: '440px', width: '100%', marginBottom: '10px' }}>
         <select value={estiloTablero} onChange={(e) => setEstiloTablero(e.target.value)} style={{ flex: 1, background: '#1e293b', color: '#fff', border: '1px solid #334155', padding: '6px', borderRadius: '6px', fontSize: '0.75rem' }}>
           <option value="madera">🪵 Madera</option>
@@ -451,9 +456,11 @@ export default function App() {
           <option value="dorado">👑 Dorado</option>
         </select>
 
-        <button onClick={() => setEsModo3D(!esModo3D)} style={{ background: esModo3D ? '#10b981' : '#1e293b', color: '#fff', border: '1px solid #334155', padding: '6px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold', cursor: 'pointer' }}>
-          {esModo3D ? '🧊 3D On' : '📐 2D'}
-        </button>
+        {/* Configuración Piezas 2D vs 3D */}
+        <select value={dimensionPiezas} onChange={(e) => setDimensionPiezas(e.target.value)} style={{ flex: 1, background: '#1e293b', color: '#fff', border: '1px solid #334155', padding: '6px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+          <option value="2d">🎭 Piezas 2D</option>
+          <option value="3d">🧊 Piezas 3D</option>
+        </select>
 
         <button onClick={() => setEnPausa(!enPausa)} style={{ background: enPausa ? '#10b981' : '#f59e0b', color: '#000', border: 'none', padding: '6px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold', cursor: 'pointer' }}>{enPausa ? '▶️' : '⏸️'}</button>
         <button onClick={() => setPerspectivaNegra(!perspectivaNegra)} style={{ background: '#1e293b', color: '#fff', border: '1px solid #334155', padding: '6px 10px', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer' }}>🔄</button>
@@ -507,15 +514,15 @@ export default function App() {
         </div>
       </div>
 
-      {/* Contenedor del Tablero con Efecto 3D Dinámico */}
+      {/* Tablero con Respuesta Visual según Selección 2D o 3D */}
       <div style={{ display: 'flex', gap: '8px', maxWidth: '440px', width: '100%', alignItems: 'center', perspective: '900px' }}>
         <div style={{ width: '10px', height: '340px', backgroundColor: '#334155', borderRadius: '6px', overflow: 'hidden', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
           <div style={{ width: '100%', height: `${100 - termometro}%`, backgroundColor: '#0f172a', transition: 'height 0.3s ease' }} />
           <div style={{ width: '100%', height: `${termometro}%`, backgroundColor: '#f8fafc', transition: 'height 0.3s ease' }} />
         </div>
 
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', transition: 'transform 0.5s ease', transform: esModo3D ? 'rotateX(22deg) rotateY(0deg) scale(1.05)' : 'rotateX(0deg) scale(1)', transformStyle: 'preserve-3d' }}>
-          <div style={{ backgroundColor: temaActual.borde, padding: '6px', borderRadius: '10px', boxShadow: esModo3D ? '0 25px 45px rgba(0,0,0,0.7), 0 0 20px rgba(59, 130, 246, 0.2)' : '0 10px 25px rgba(0,0,0,0.5)', width: '100%', boxSizing: 'border-box', transition: 'box-shadow 0.5s ease' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', transition: 'transform 0.5s ease', transform: es3D ? 'rotateX(22deg) rotateY(0deg) scale(1.05)' : 'rotateX(0deg) scale(1)', transformStyle: 'preserve-3d' }}>
+          <div style={{ backgroundColor: temaActual.borde, padding: '6px', borderRadius: '10px', boxShadow: es3D ? '0 25px 45px rgba(0,0,0,0.7), 0 0 20px rgba(59, 130, 246, 0.2)' : '0 10px 25px rgba(0,0,0,0.5)', width: '100%', boxSizing: 'border-box', transition: 'box-shadow 0.5s ease' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gridTemplateRows: 'repeat(8, 1fr)', width: '100%', aspectRatio: '1 / 1', borderRadius: '4px', overflow: 'hidden' }}>
               {board.map((row, rowIndex) =>
                 row.map((square, colIndex) => {
@@ -555,14 +562,16 @@ export default function App() {
                       {square && (
                         <span style={{ 
                           color: coloresActuales[square.color], 
-                          filter: square.color === 'w' ? 'drop-shadow(0px 3px 4px rgba(0,0,0,0.8))' : 'drop-shadow(0px 3px 3px rgba(255,255,255,0.4))', 
+                          filter: es3D 
+                            ? (square.color === 'w' ? 'drop-shadow(0px 5px 6px rgba(0,0,0,0.9))' : 'drop-shadow(0px 5px 5px rgba(255,255,255,0.5))')
+                            : (square.color === 'w' ? 'drop-shadow(0px 2px 3px rgba(0,0,0,0.7))' : 'drop-shadow(0px 2px 2px rgba(255,255,255,0.3))'), 
                           lineHeight: 1, 
                           zIndex: 1,
                           display: 'inline-block',
-                          transform: esModo3D 
-                            ? (square.color === 'b' ? 'scale(1.15) translateY(-6px) translateZ(15px)' : 'scale(1.05) translateY(-4px) translateZ(15px)')
+                          transform: es3D 
+                            ? (square.color === 'b' ? 'scale(1.18) translateY(-6px) translateZ(18px)' : 'scale(1.08) translateY(-4px) translateZ(18px)')
                             : (square.color === 'b' ? 'scale(1.08)' : 'scale(1)'),
-                          transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                          transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.3s ease'
                         }}>
                           {PIEZAS_UNICODE[square.color][square.type]}
                         </span>
